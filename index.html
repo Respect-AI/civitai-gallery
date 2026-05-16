@@ -18,7 +18,6 @@
 
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 15px; }
         
-        /* 상단 바 단일 행(1줄) 강제 고정 및 여백 최적화 */
         .header-controls { 
             background: var(--card-bg); 
             padding: 8px 12px; 
@@ -34,12 +33,11 @@
         .input-row { 
             display: flex; 
             align-items: center; 
-            gap: 6px; /* 간격 최소화 */
-            flex-wrap: nowrap; /* 절대 줄바꿈 금지 */
-            overflow-x: auto; /* 극단적으로 좁아질 경우 내부 스크롤 보장 */
+            gap: 6px; 
+            flex-wrap: nowrap; 
+            overflow-x: auto; 
         }
 
-        /* 폰트 및 패딩 전체 축소 */
         select, button { 
             padding: 6px 10px; 
             border-radius: 50px; 
@@ -68,8 +66,6 @@
         }
         #selectedModelCount { color: var(--accent); font-weight: bold; }
 
-        .filter-label { font-size: 12px; color: #a5a7ad; white-space: nowrap; margin-right: -2px; }
-
         .checkbox-container {
             display: flex; 
             align-items: center; 
@@ -84,7 +80,6 @@
         }
         .checkbox-container input { margin: 0; }
 
-        /* 팝업 모달창 스타일 */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -147,11 +142,11 @@
     <div class="header-controls">
         <div class="input-row">
             <div class="model-summary-box">
-                <span>Models: <span id="selectedModelCount">2</span></span>
+                <span>Models: <span id="selectedModelCount">0</span></span>
                 <button type="button" onclick="toggleModal(true)" style="padding: 2px 6px; font-size: 11px; border-radius: 4px;">변경</button>
             </div>
 
-            <select id="period">
+            <select id="period" onchange="saveFilterOptions()">
                 <option value="AllTime">All Time</option>
                 <option value="Year">Year</option>
                 <option value="Month">Month</option>
@@ -159,13 +154,13 @@
                 <option value="Day" selected>Day</option>
             </select>
 
-            <select id="sort">
+            <select id="sort" onchange="saveFilterOptions()">
                 <option value="Most Reactions" selected>Reactions</option>
                 <option value="Most Comments">Comments</option>
                 <option value="Newest">Newest</option>
             </select>
 
-            <select id="browsingLevel">
+            <select id="browsingLevel" onchange="saveFilterOptions()">
                 <option value="1">SFW</option>
                 <option value="3">NSFW Soft</option>
                 <option value="7">Mature</option>
@@ -174,7 +169,7 @@
             </select>
 
             <label class="checkbox-container">
-                <input type="checkbox" id="onlyPrompt"> Prompt Only
+                <input type="checkbox" id="onlyPrompt" onchange="saveFilterOptions()"> Prompt Only
             </label>
 
             <button class="search-btn" onclick="initSearch()">SEARCH</button>
@@ -240,6 +235,7 @@
         function resetSavedKey() {
             if (confirm("저장된 API Key를 삭제하고 다시 입력하시겠습니까?")) {
                 localStorage.removeItem('civitai_api_key');
+                localStorage.removeItem('gallery_filter_options');
                 location.reload();
             }
         }
@@ -250,14 +246,51 @@
             else modal.classList.remove('active');
         }
 
-        function renderModelCheckboxes(models) {
+        // select 박스 값들만 분리해서 먼저 복구하는 함수
+        function loadSavedSelects() {
+            const savedData = localStorage.getItem('gallery_filter_options');
+            if (!savedData) return null;
+            try {
+                const options = JSON.parse(savedData);
+                if (options.period) document.getElementById('period').value = options.period;
+                if (options.sort) document.getElementById('sort').value = options.sort;
+                if (options.browsingLevel) document.getElementById('browsingLevel').value = options.browsingLevel;
+                if (options.hasOwnProperty('onlyPrompt')) document.getElementById('onlyPrompt').checked = options.onlyPrompt;
+                return options.models || null;
+            } catch (e) {
+                console.error("Failed to parse saved filters", e);
+                return null;
+            }
+        }
+
+        function saveFilterOptions() {
+            const selectedModels = Array.from(document.querySelectorAll('input[name="baseModel"]:checked')).map(cb => cb.value);
+            const options = {
+                period: document.getElementById('period').value,
+                sort: document.getElementById('sort').value,
+                browsingLevel: document.getElementById('browsingLevel').value,
+                onlyPrompt: document.getElementById('onlyPrompt').checked,
+                models: selectedModels
+            };
+            localStorage.setItem('gallery_filter_options', JSON.stringify(options));
+        }
+
+        function renderModelCheckboxes(models, savedModels) {
             const selector = document.getElementById('modelSelector');
             selector.innerHTML = '';
+
             models.forEach(model => {
                 const label = document.createElement('label');
                 label.className = 'model-item';
-                const isChecked = (model === 'ZImageTurbo' || model === 'ZImageBase');
-                label.innerHTML = `<input type="checkbox" name="baseModel" value="${model}" ${isChecked ? 'checked' : ''} onchange="updateCountSummary()"> <span>${model}</span>`;
+                
+                let isChecked = false;
+                if (savedModels && Array.isArray(savedModels)) {
+                    isChecked = savedModels.includes(model);
+                } else {
+                    isChecked = (model === 'ZImageTurbo' || model === 'ZImageBase');
+                }
+
+                label.innerHTML = `<input type="checkbox" name="baseModel" value="${model}" ${isChecked ? 'checked' : ''} onchange="updateCountSummary(); saveFilterOptions();"> <span>${model}</span>`;
                 selector.appendChild(label);
             });
             updateCountSummary();
@@ -274,12 +307,22 @@
         }
 
         async function loadBaseModels() {
-            renderModelCheckboxes(FALLBACK_MODELS);
+            // 1. 먼저 로컬 캐시 정보를 읽어옴
+            const savedModels = loadSavedSelects();
+            
+            // 2. 읽어온 캐시 상태를 적용해 Fallback 모델 리스트 생성
+            renderModelCheckboxes(FALLBACK_MODELS, savedModels);
+
+            // 3. 2초 후 서버 API 연동 시도
             setTimeout(async () => {
                 try {
                     const response = await fetch(`${BASE_API}/enums`, { headers: getHeaders() });
                     const data = await response.json();
-                    if (data.ActiveBaseModel) renderModelCheckboxes(data.ActiveBaseModel);
+                    if (data.ActiveBaseModel) {
+                        // 서버 데이터를 받아올 때도 현재 저장된 체크 이력을 유지
+                        const currentSaved = loadSavedSelects();
+                        renderModelCheckboxes(data.ActiveBaseModel, currentSaved);
+                    }
                 } catch (e) { console.warn("Fallback maintained."); }
             }, 2000); 
         }
@@ -427,9 +470,14 @@
             }
         }
 
-        loadBaseModels();
-        checkApiKey(); 
-        initSearch();
+        // 실행 파이프라인 전면 개편
+        async function bootstrap() {
+            await loadBaseModels(); // 모델 돔 엘리먼트 빌드 및 체크박스 상태 복구 완료 보장
+            checkApiKey();          // API Key 검증
+            await initSearch();     // 정비된 조건으로 이미지 로드 시작
+        }
+
+        bootstrap();
     </script>
 </body>
 </html>
