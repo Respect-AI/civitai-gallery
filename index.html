@@ -94,11 +94,14 @@
             transition: opacity 0.2s ease;
         }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
-        .modal-content { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: 14px; width: 90%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .modal-content { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: 14px; width: 90%; max-width: 550px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
         .modal-title { font-size: 15px; font-weight: bold; color: white; }
         
-        .model-selector { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; max-height: 300px; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; }
+        .modal-toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
+        .modal-toolbar button { border-radius: 4px; padding: 4px 10px; font-size: 11px; }
+
+        .model-selector { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; max-height: 350px; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; }
         .model-item { display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; color: #a5a7ad; padding: 6px; background: #2c2e33; border-radius: 6px; border: 1px solid transparent; }
         .model-item:hover { color: white; border-color: var(--border); }
 
@@ -142,7 +145,7 @@
     <div class="header-controls">
         <div class="input-row">
             <div class="model-summary-box">
-                <span>Models: <span id="selectedModelCount">0</span></span>
+                <span>Models: <span id="selectedModelCount">All</span></span>
                 <button type="button" onclick="toggleModal(true)" style="padding: 2px 6px; font-size: 11px; border-radius: 4px;">변경</button>
             </div>
 
@@ -184,6 +187,10 @@
                 <div class="modal-title">Base Models 선택</div>
                 <button onclick="toggleModal(false)" style="padding: 4px 8px; font-size: 11px; background: transparent;">닫기</button>
             </div>
+            <div class="modal-toolbar">
+                <button onclick="setAllCheckboxes(true)" style="background: #2b3a4a;">전체 선택</button>
+                <button onclick="setAllCheckboxes(false)">전체 해제 (필터링 끔)</button>
+            </div>
             <div id="modelSelector" class="model-selector"></div>
             <div style="text-align: right;">
                 <button onclick="applyModelSelection()" style="background: var(--accent); border: none; padding: 8px 20px;">적용하기</button>
@@ -205,9 +212,19 @@
         let API_KEY = localStorage.getItem('civitai_api_key') || '';
         const BASE_API = 'https://civitai.red/api/v1';
         
+        // 제공해주신 목록에서 비디오 전용 모델(CogVideoX, Hunyuan Video, LTXV계열, Mochi, SVD계열, Sora 2, Veo 3, Wan Video계열)을 제거한 마스터 리스트
         const FALLBACK_MODELS = [
-            "ZImageTurbo", "ZImageBase", "Qwen", "Qwen 2", "Flux.1 D", "Flux.1 S", 
-            "Flux.2 Klein 9B", "Flux.2 Klein 4B", "SDXL 1.0", "Pony", "NoobAI", "Illustrious"
+            "Anima", "AuraFlow", "Chroma", "Ernie", "Flux.1 S", "Flux.1 D", "Flux.1 Krea", 
+            "Flux.1 Kontext", "Flux.2 D", "Flux.2 Klein 9B", "Flux.2 Klein 9B-base", "Flux.2 Klein 4B", 
+            "Flux.2 Klein 4B-base", "Grok", "HappyHorse", "HiDream", "HiDream-O1", "Hunyuan 1", 
+            "Illustrious", "Imagen4", "Kolors", "Lumina", "Nano Banana", "NoobAI", "ODOR", 
+            "OpenAI", "Upscaler", "Other", "PixArt a", "PixArt E", "Playground v2", "Pony", 
+            "Pony V7", "Qwen", "Qwen 2", "Stable Cascade", "SD 1.4", "SD 1.5", "SD 1.5 LCM", 
+            "SD 1.5 Hyper", "SD 2.0", "SD 2.0 768", "SD 2.1", "SD 2.1 768", "SD 2.1 Unclip", 
+            "SD 3", "SD 3.5", "SD 3.5 Large", "SD 3.5 Large Turbo", "SD 3.5 Medium", "SDXL 0.9", 
+            "SDXL 1.0", "SDXL 1.0 LCM", "SDXL Lightning", "SDXL Hyper", "SDXL Turbo", "SDXL Distilled", 
+            "Seedream", "Wan Image 2.7", "ZImageTurbo", "ZImageBase", "Vidu Q1", "Hailuo by MiniMax", 
+            "Kling", "Seedance", "ACE Audio"
         ];
 
         let cursor = null;
@@ -246,7 +263,6 @@
             else modal.classList.remove('active');
         }
 
-        // select 박스 값들만 분리해서 먼저 복구하는 함수
         function loadSavedSelects() {
             const savedData = localStorage.getItem('gallery_filter_options');
             if (!savedData) return null;
@@ -275,6 +291,14 @@
             localStorage.setItem('gallery_filter_options', JSON.stringify(options));
         }
 
+        // 툴바 제어 매크로 (전체 선택 / 전체 해제)
+        function setAllCheckboxes(checked) {
+            const checkboxes = document.querySelectorAll('input[name="baseModel"]');
+            checkboxes.forEach(cb => cb.checked = checked);
+            updateCountSummary();
+            saveFilterOptions();
+        }
+
         function renderModelCheckboxes(models, savedModels) {
             const selector = document.getElementById('modelSelector');
             selector.innerHTML = '';
@@ -287,6 +311,7 @@
                 if (savedModels && Array.isArray(savedModels)) {
                     isChecked = savedModels.includes(model);
                 } else {
+                    // 최초 인입 시 기본 타겟 필터링 설정
                     isChecked = (model === 'ZImageTurbo' || model === 'ZImageBase');
                 }
 
@@ -298,7 +323,8 @@
 
         function updateCountSummary() {
             const checkedCount = document.querySelectorAll('input[name="baseModel"]:checked').length;
-            document.getElementById('selectedModelCount').innerText = checkedCount;
+            // 체크박스를 하나도 선택하지 않았다면 "All"로 표시하여 필터링 해제 상태임을 명시
+            document.getElementById('selectedModelCount').innerText = checkedCount === 0 ? "All" : checkedCount;
         }
 
         function applyModelSelection() {
@@ -307,23 +333,22 @@
         }
 
         async function loadBaseModels() {
-            // 1. 먼저 로컬 캐시 정보를 읽어옴
             const savedModels = loadSavedSelects();
             
-            // 2. 읽어온 캐시 상태를 적용해 Fallback 모델 리스트 생성
+            // enums API 호출 성공 여부와 상관없이 마스터 리스트를 항상 기본 탑재하여 보여줌
             renderModelCheckboxes(FALLBACK_MODELS, savedModels);
 
-            // 3. 2초 후 서버 API 연동 시도
             setTimeout(async () => {
                 try {
                     const response = await fetch(`${BASE_API}/enums`, { headers: getHeaders() });
                     const data = await response.json();
-                    if (data.ActiveBaseModel) {
-                        // 서버 데이터를 받아올 때도 현재 저장된 체크 이력을 유지
+                    if (data.ActiveBaseModel && data.ActiveBaseModel.length > 0) {
                         const currentSaved = loadSavedSelects();
-                        renderModelCheckboxes(data.ActiveBaseModel, currentSaved);
+                        // API 데이터 중 제공된 마스터 리스트에 포함되어 있으면서 비디오 모델이 아닌 항목만 선별해 매핑
+                        const filteredServerModels = data.ActiveBaseModel.filter(m => FALLBACK_MODELS.includes(m));
+                        renderModelCheckboxes(filteredServerModels, currentSaved);
                     }
-                } catch (e) { console.warn("Fallback maintained."); }
+                } catch (e) { console.warn("Using fallback model list due to API or CORS limits."); }
             }, 2000); 
         }
 
@@ -335,7 +360,12 @@
             const selectedModels = Array.from(document.querySelectorAll('input[name="baseModel"]:checked')).map(cb => cb.value);
             
             let url = `${BASE_API}/images?type=image&limit=${limit}&sort=${encodeURIComponent(sort)}&period=${period}&browsingLevel=${browsingLevel}`;
-            if (selectedModels.length > 0) url += `&baseModels=${selectedModels.join(',')}`;
+            
+            // 핵심: 선택된 모델이 하나라도 있을 때만 파라미터 전달, 체크가 전혀 없으면 필터링 생략(전체 조회)
+            if (selectedModels.length > 0) {
+                url += `&baseModels=${selectedModels.join(',')}`;
+            }
+            
             if (targetCursor) url += `&cursor=${targetCursor}`;
 
             const response = await fetch(url, { headers: getHeaders() });
@@ -470,11 +500,10 @@
             }
         }
 
-        // 실행 파이프라인 전면 개편
         async function bootstrap() {
-            await loadBaseModels(); // 모델 돔 엘리먼트 빌드 및 체크박스 상태 복구 완료 보장
-            checkApiKey();          // API Key 검증
-            await initSearch();     // 정비된 조건으로 이미지 로드 시작
+            await loadBaseModels(); 
+            checkApiKey();          
+            await initSearch();     
         }
 
         bootstrap();
