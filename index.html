@@ -14,15 +14,17 @@
             --comfy-color: #f08c00;
             --success: #40c057;
             --border: #373a40;
+            --disabled-bg: #1c1d20;
+            --disabled-text: #5c5f66;
         }
 
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 15px; }
-        
-        .header-controls { 
-            background: var(--card-bg); 
-            padding: 8px 12px; 
-            border-radius: 8px; 
-            margin-bottom: 20px; 
+
+        .header-controls {
+            background: var(--card-bg);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
             position: sticky;
             top: 10px;
             z-index: 100;
@@ -30,28 +32,63 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
 
-        .input-row { 
-            display: flex; 
-            align-items: center; 
-            gap: 6px; 
-            flex-wrap: nowrap; 
-            overflow-x: auto; 
+        /* 메인 행 — 항상 표시 */
+        .main-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
         }
 
-        select, button { 
-            padding: 6px 10px; 
-            border-radius: 50px; 
-            border: 1px solid var(--border); 
-            background: #2c2e33; 
-            color: white; 
-            outline: none; 
-            font-size: 12px; 
+        /* 고급 필터 행 — 토글 */
+        .advanced-row {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid var(--border);
         }
+        .advanced-row.open { display: flex; }
+
+        select, button, input[type="text"], input[type="number"] {
+            padding: 6px 10px;
+            border-radius: 50px;
+            border: 1px solid var(--border);
+            background: #2c2e33;
+            color: white;
+            outline: none;
+            font-size: 12px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 65px;
+            transition: width 0.2s, border-color 0.2s;
+        }
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="text"]:focus, input[type="number"]:focus { width: 110px; border-color: var(--accent); }
+        input::placeholder { color: #74757a; }
+
         button { cursor: pointer; font-weight: 600; background: #3b3d42; transition: 0.2s; white-space: nowrap; }
-        button:disabled { opacity: 0.3; cursor: not-allowed; }
+        button:disabled { opacity: 0.3; cursor: not-allowed; background: #222 !important; color: #555 !important; border-color: #2c2e33 !important; }
         button:hover:not(:disabled) { background: var(--accent); }
-        
+
         .search-btn { background: var(--accent); border: none; padding: 6px 16px; }
+        .search-btn:hover:not(:disabled) { background: #1c7ed6; }
+
+        .toggle-adv-btn {
+            background: #2c2e33;
+            border: 1px solid var(--border);
+            color: #888;
+            font-size: 11px;
+            padding: 6px 10px;
+            flex-shrink: 0;
+        }
+        .toggle-adv-btn:hover:not(:disabled) { background: #373a40; color: white; }
+        .toggle-adv-btn.active { border-color: var(--accent); color: var(--accent); background: #192333; }
 
         .model-summary-box {
             font-size: 12px;
@@ -63,41 +100,76 @@
             align-items: center;
             gap: 6px;
             white-space: nowrap;
+            transition: background 0.2s, border-color 0.2s, color 0.2s;
+            flex-shrink: 0;
         }
+        .model-summary-box.bypass-mode { background: var(--disabled-bg); border-color: #2c2e33; color: var(--disabled-text); }
         #selectedModelCount { color: var(--accent); font-weight: bold; }
+        .model-summary-box.bypass-mode #selectedModelCount { color: #e64980; }
 
         .checkbox-container {
-            display: flex; 
-            align-items: center; 
-            gap: 4px; 
-            font-size: 12px; 
-            cursor: pointer; 
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            cursor: pointer;
             white-space: nowrap;
             background: #2c2e33;
             padding: 6px 10px;
             border-radius: 50px;
             border: 1px solid var(--border);
+            flex-shrink: 0;
         }
         .checkbox-container input { margin: 0; }
 
+        /* API URL 바 — sticky 헤더 바로 아래 */
+        .api-bar {
+            background: #111214;
+            border: 1px solid #1e1f23;
+            border-radius: 6px;
+            padding: 5px 10px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-family: 'Consolas', monospace;
+        }
+        .api-bar-label { color: #4a4c52; flex-shrink: 0; }
+        .api-bar-url {
+            color: #6a9e4a;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            flex: 1;
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+        .api-bar-url:hover { color: #a9e34b; }
+        .prefetch-status {
+            display: none;
+            color: #a9e34b;
+            white-space: nowrap;
+            flex-shrink: 0;
+            animation: blink 1s step-start infinite;
+        }
+        @keyframes blink { 50% { opacity: 0.3; } }
+
+        /* 모달 */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0,0,0,0.7);
             backdrop-filter: blur(5px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             z-index: 2000;
-            opacity: 0;
-            pointer-events: none;
+            opacity: 0; pointer-events: none;
             transition: opacity 0.2s ease;
         }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         .modal-content { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: 14px; width: 90%; max-width: 550px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
         .modal-title { font-size: 15px; font-weight: bold; color: white; }
-        
         .modal-toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
         .modal-toolbar button { border-radius: 4px; padding: 4px 10px; font-size: 11px; }
 
@@ -105,28 +177,24 @@
         .model-item { display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; color: #a5a7ad; padding: 6px; background: #2c2e33; border-radius: 6px; border: 1px solid transparent; }
         .model-item:hover { color: white; border-color: var(--border); }
 
-        .fetching-indicator {
-            font-size: 11px;
-            color: #fff;
-            background: var(--comfy-color);
-            padding: 4px 8px;
-            border-radius: 4px;
-            display: none; 
-            animation: pulse 1.5s infinite;
-            font-weight: bold;
-            white-space: nowrap;
-        }
+        .user-list-container { max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
+        .user-list-item { display: flex; justify-content: space-between; align-items: center; background: #2c2e33; padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+        .user-list-name { color: #ffd43b; cursor: pointer; font-weight: 600; }
+        .user-list-name:hover { text-decoration: underline; color: #fab005; }
+        .user-del-btn { background: #c92a2a; border: none; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+        .user-del-btn:hover { background: #a61e1e; }
 
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
-
+        /* 이미지 그리드 */
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; min-height: 100vh; }
         .card { position: relative; background: var(--card-bg); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform 0.2s; aspect-ratio: 2/3; }
         .card:hover { transform: translateY(-5px); }
         .card img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; background: #111; }
 
-        .badge-container { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 10; }
-        .badge { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px); padding: 5px 10px; border-radius: 5px; font-size: 10px; font-weight: 800; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
-        .badge.stats-merged { display: flex; gap: 8px; align-items: center; color: #fff; }
+        .badge-container { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 4px; z-index: 10; max-width: calc(100% - 20px); }
+        .badge { background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); padding: 5px 10px; border-radius: 5px; font-size: 10px; font-weight: 800; text-align: center; border: 1px solid rgba(255,255,255,0.1); width: max-content; }
+        .badge.stats-merged { display: flex; gap: 8px; align-items: center; color: #fff; flex-wrap: nowrap; }
+        .badge-user-link { color: #ffd43b; cursor: pointer; border-left: 1px solid rgba(255,255,255,0.2); padding-left: 8px; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 0.1s; }
+        .badge-user-link:hover { color: #fab005; text-decoration: underline; }
         .badge.clickable { cursor: pointer; transition: 0.2s; }
         .badge.clickable:hover { transform: scale(1.05); filter: brightness(1.2); }
         .badge.prompt-status { background: var(--accent); color: white; }
@@ -143,10 +211,11 @@
 <body>
 
     <div class="header-controls">
-        <div class="input-row">
-            <div class="model-summary-box">
+        <!-- ── 메인 행: 항상 표시 ── -->
+        <div class="main-row">
+            <div id="modelSummaryBox" class="model-summary-box">
                 <span>Models: <span id="selectedModelCount">All</span></span>
-                <button type="button" onclick="toggleModal(true)" style="padding: 2px 6px; font-size: 11px; border-radius: 4px;">변경</button>
+                <button type="button" id="modelChangeBtn" onclick="toggleModal(true, 'modelModal')" style="padding: 2px 6px; font-size: 11px; border-radius: 4px;">변경</button>
             </div>
 
             <select id="period" onchange="saveFilterOptions()">
@@ -177,15 +246,34 @@
 
             <button class="search-btn" onclick="initSearch()">SEARCH</button>
             <button onclick="resetSavedKey()" style="background:#c92a2a; border:none; padding: 6px 10px;">Key Reset</button>
-            <span id="prefetchStatus" class="fetching-indicator">PRE-LOADING...</span>
+            <button id="toggleAdvBtn" class="toggle-adv-btn" onclick="toggleAdvanced()">＋ 고급</button>
+        </div>
+
+        <!-- ── 고급 필터 행: 토글 ── -->
+        <div id="advancedRow" class="advanced-row">
+            <input type="text" id="usernameFilter" list="userSuggestions" placeholder="User" onchange="saveFilterOptions()" onkeydown="if(event.key==='Enter') initSearch()">
+            <datalist id="userSuggestions"></datalist>
+
+            <button type="button" onclick="toggleModal(true, 'userManageModal')" style="background: #2b3a4a; border-color: #3b5066; padding: 6px 10px;">★ 즐겨찾기</button>
+
+            <input type="number" id="modelIdFilter" placeholder="M-ID" oninput="handleIdFilterInput()" onchange="saveFilterOptions()" onkeydown="if(event.key==='Enter') initSearch()">
+            <input type="number" id="modelVersionIdFilter" placeholder="V-ID" oninput="handleIdFilterInput()" onchange="saveFilterOptions()" onkeydown="if(event.key==='Enter') initSearch()">
         </div>
     </div>
 
-    <div id="modelModal" class="modal-overlay" onclick="toggleModal(false)">
+    <!-- API URL 바 -->
+    <div class="api-bar">
+        <span class="api-bar-label">API</span>
+        <span id="currentApiInspector" class="api-bar-url" onclick="copyApiUrl()" title="클릭하여 복사">Waiting...</span>
+        <span id="prefetchStatus" class="prefetch-status">PRE-LOADING...</span>
+    </div>
+
+    <!-- 모달: 모델 선택 -->
+    <div id="modelModal" class="modal-overlay" onclick="toggleModal(false, 'modelModal')">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div class="modal-title">Base Models 선택</div>
-                <button onclick="toggleModal(false)" style="padding: 4px 8px; font-size: 11px; background: transparent;">닫기</button>
+                <button onclick="toggleModal(false, 'modelModal')" style="padding: 4px 8px; font-size: 11px; background: transparent;">닫기</button>
             </div>
             <div class="modal-toolbar">
                 <button onclick="setAllCheckboxes(true)" style="background: #2b3a4a;">전체 선택</button>
@@ -198,6 +286,20 @@
         </div>
     </div>
 
+    <!-- 모달: 즐겨찾기 유저 -->
+    <div id="userManageModal" class="modal-overlay" onclick="toggleModal(false, 'userManageModal')">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title">★ 즐겨찾기 유저 관리</div>
+                <button onclick="toggleModal(false, 'userManageModal')" style="padding: 4px 8px; font-size: 11px; background: transparent;">닫기</button>
+            </div>
+            <div id="userListContainer" class="user-list-container"></div>
+            <div style="text-align: right;">
+                <button onclick="toggleModal(false, 'userManageModal')" style="padding: 8px 20px;">닫기</button>
+            </div>
+        </div>
+    </div>
+
     <div id="imageGrid" class="grid"></div>
 
     <div class="pagination">
@@ -206,32 +308,57 @@
         <button id="nextBtn" onclick="changePage(1)">NEXT</button>
     </div>
 
-    <div id="copyToast" class="copy-toast">복사 완료!</div>
+    <div id="copyToast" class="copy-toast"></div>
 
     <script>
         let API_KEY = localStorage.getItem('civitai_api_key') || '';
         const BASE_API = 'https://civitai.red/api/v1';
-        
-        // 제공해주신 목록에서 비디오 전용 모델(CogVideoX, Hunyuan Video, LTXV계열, Mochi, SVD계열, Sora 2, Veo 3, Wan Video계열)을 제거한 마스터 리스트
+
         const FALLBACK_MODELS = [
-            "Anima", "AuraFlow", "Chroma", "Ernie", "Flux.1 S", "Flux.1 D", "Flux.1 Krea", 
-            "Flux.1 Kontext", "Flux.2 D", "Flux.2 Klein 9B", "Flux.2 Klein 9B-base", "Flux.2 Klein 4B", 
-            "Flux.2 Klein 4B-base", "Grok", "HappyHorse", "HiDream", "HiDream-O1", "Hunyuan 1", 
-            "Illustrious", "Imagen4", "Kolors", "Lumina", "Nano Banana", "NoobAI", "ODOR", 
-            "OpenAI", "Upscaler", "Other", "PixArt a", "PixArt E", "Playground v2", "Pony", 
-            "Pony V7", "Qwen", "Qwen 2", "Stable Cascade", "SD 1.4", "SD 1.5", "SD 1.5 LCM", 
-            "SD 1.5 Hyper", "SD 2.0", "SD 2.0 768", "SD 2.1", "SD 2.1 768", "SD 2.1 Unclip", 
-            "SD 3", "SD 3.5", "SD 3.5 Large", "SD 3.5 Large Turbo", "SD 3.5 Medium", "SDXL 0.9", 
-            "SDXL 1.0", "SDXL 1.0 LCM", "SDXL Lightning", "SDXL Hyper", "SDXL Turbo", "SDXL Distilled", 
-            "Seedream", "Wan Image 2.7", "ZImageTurbo", "ZImageBase", "Vidu Q1", "Hailuo by MiniMax", 
+            "Anima", "AuraFlow", "Chroma", "Ernie", "Flux.1 S", "Flux.1 D", "Flux.1 Krea",
+            "Flux.1 Kontext", "Flux.2 D", "Flux.2 Klein 9B", "Flux.2 Klein 9B-base", "Flux.2 Klein 4B",
+            "Flux.2 Klein 4B-base", "Grok", "HappyHorse", "HiDream", "HiDream-O1", "Hunyuan 1",
+            "Illustrious", "Imagen4", "Kolors", "Lumina", "Nano Banana", "NoobAI", "ODOR",
+            "OpenAI", "Upscaler", "Other", "PixArt a", "PixArt E", "Playground v2", "Pony",
+            "Pony V7", "Qwen", "Qwen 2", "Stable Cascade", "SD 1.4", "SD 1.5", "SD 1.5 LCM",
+            "SD 1.5 Hyper", "SD 2.0", "SD 2.0 768", "SD 2.1", "SD 2.1 768", "SD 2.1 Unclip",
+            "SD 3", "SD 3.5", "SD 3.5 Large", "SD 3.5 Large Turbo", "SD 3.5 Medium", "SDXL 0.9",
+            "SDXL 1.0", "SDXL 1.0 LCM", "SDXL Lightning", "SDXL Hyper", "SDXL Turbo", "SDXL Distilled",
+            "Seedream", "Wan Image 2.7", "ZImageTurbo", "ZImageBase", "Vidu Q1", "Hailuo by MiniMax",
             "Kling", "Seedance", "ACE Audio"
         ];
 
         let cursor = null;
         let currentPage = 1;
-        const limit = 40; 
-        let nextDataCache = null; 
+        const limit = 40;
+        let nextDataCache = null;
         let isFetching = false;
+        let searchSessionId = 0;
+        let lastApiUrl = '';
+
+        let savedUsernames = JSON.parse(localStorage.getItem('gallery_cached_usernames')) || [];
+
+        // ── 고급 필터 토글 ────────────────────────────────────
+        function toggleAdvanced() {
+            const row = document.getElementById('advancedRow');
+            const btn = document.getElementById('toggleAdvBtn');
+            const isOpen = row.classList.toggle('open');
+            btn.classList.toggle('active', isOpen);
+            btn.textContent = isOpen ? '－ 고급' : '＋ 고급';
+            if (isOpen) localStorage.setItem('gallery_adv_open', '1');
+            else localStorage.removeItem('gallery_adv_open');
+        }
+
+        function openAdvancedIfNeeded() {
+            const row = document.getElementById('advancedRow');
+            if (!row.classList.contains('open')) toggleAdvanced();
+        }
+
+        function copyApiUrl() {
+            if (!lastApiUrl) return;
+            navigator.clipboard.writeText(lastApiUrl);
+            showToast('API URL 복사 완료!');
+        }
 
         function getHeaders() {
             return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_KEY}` };
@@ -249,18 +376,36 @@
             }
         }
 
+        function showToast(message) {
+            const toast = document.getElementById('copyToast');
+            toast.innerText = message;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2000);
+        }
+
         function resetSavedKey() {
             if (confirm("저장된 API Key를 삭제하고 다시 입력하시겠습니까?")) {
                 localStorage.removeItem('civitai_api_key');
                 localStorage.removeItem('gallery_filter_options');
+                localStorage.removeItem('gallery_cached_usernames');
+                localStorage.removeItem('gallery_adv_open');
                 location.reload();
             }
         }
 
-        function toggleModal(show) {
-            const modal = document.getElementById('modelModal');
-            if (show) modal.classList.add('active');
-            else modal.classList.remove('active');
+        function toggleModal(show, modalId) {
+            if (modalId === 'modelModal') {
+                const modelIdVal = document.getElementById('modelIdFilter').value.trim();
+                const modelVersionId = document.getElementById('modelVersionIdFilter').value.trim();
+                if ((modelIdVal || modelVersionId) && show) return;
+            }
+            const modal = document.getElementById(modalId);
+            if (show) {
+                modal.classList.add('active');
+                if (modalId === 'userManageModal') renderUserManageList();
+            } else {
+                modal.classList.remove('active');
+            }
         }
 
         function loadSavedSelects() {
@@ -268,20 +413,24 @@
             if (!savedData) return null;
             try {
                 const options = JSON.parse(savedData);
+                if (options.hasOwnProperty('cursor')) delete options.cursor;
+                if (options.username) document.getElementById('usernameFilter').value = options.username;
+                if (options.modelId) document.getElementById('modelIdFilter').value = options.modelId;
+                if (options.modelVersionId) document.getElementById('modelVersionIdFilter').value = options.modelVersionId;
                 if (options.period) document.getElementById('period').value = options.period;
                 if (options.sort) document.getElementById('sort').value = options.sort;
                 if (options.browsingLevel) document.getElementById('browsingLevel').value = options.browsingLevel;
                 if (options.hasOwnProperty('onlyPrompt')) document.getElementById('onlyPrompt').checked = options.onlyPrompt;
                 return options.models || null;
-            } catch (e) {
-                console.error("Failed to parse saved filters", e);
-                return null;
-            }
+            } catch (e) { return null; }
         }
 
         function saveFilterOptions() {
             const selectedModels = Array.from(document.querySelectorAll('input[name="baseModel"]:checked')).map(cb => cb.value);
             const options = {
+                username: document.getElementById('usernameFilter').value.trim(),
+                modelId: document.getElementById('modelIdFilter').value.trim(),
+                modelVersionId: document.getElementById('modelVersionIdFilter').value.trim(),
                 period: document.getElementById('period').value,
                 sort: document.getElementById('sort').value,
                 browsingLevel: document.getElementById('browsingLevel').value,
@@ -291,10 +440,59 @@
             localStorage.setItem('gallery_filter_options', JSON.stringify(options));
         }
 
-        // 툴바 제어 매크로 (전체 선택 / 전체 해제)
+        function updateUserSuggestionsUI() {
+            const datalist = document.getElementById('userSuggestions');
+            datalist.innerHTML = '';
+            savedUsernames.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user;
+                datalist.appendChild(option);
+            });
+        }
+
+        function renderUserManageList() {
+            const container = document.getElementById('userListContainer');
+            container.innerHTML = '';
+            if (savedUsernames.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#5c5f66; padding:20px; font-size:12px;">등록된 유저가 없습니다.</p>';
+                return;
+            }
+            savedUsernames.forEach(user => {
+                const row = document.createElement('div');
+                row.className = 'user-list-item';
+                row.innerHTML = `
+                    <span class="user-list-name" onclick="selectUserFromManager('${user}')">@${user}</span>
+                    <button class="user-del-btn" onclick="deleteUser('${user}')">삭제</button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function selectUserFromManager(username) {
+            document.getElementById('usernameFilter').value = username;
+            toggleModal(false, 'userManageModal');
+            saveFilterOptions();
+            initSearch();
+        }
+
+        function deleteUser(username) {
+            savedUsernames = savedUsernames.filter(u => u !== username);
+            localStorage.setItem('gallery_cached_usernames', JSON.stringify(savedUsernames));
+            updateUserSuggestionsUI();
+            renderUserManageList();
+        }
+
+        function tryRegisterUsername(username) {
+            if (!username) return;
+            if (!savedUsernames.includes(username)) {
+                savedUsernames.push(username);
+                localStorage.setItem('gallery_cached_usernames', JSON.stringify(savedUsernames));
+                updateUserSuggestionsUI();
+            }
+        }
+
         function setAllCheckboxes(checked) {
-            const checkboxes = document.querySelectorAll('input[name="baseModel"]');
-            checkboxes.forEach(cb => cb.checked = checked);
+            document.querySelectorAll('input[name="baseModel"]').forEach(cb => cb.checked = checked);
             updateCountSummary();
             saveFilterOptions();
         }
@@ -302,41 +500,82 @@
         function renderModelCheckboxes(models, savedModels) {
             const selector = document.getElementById('modelSelector');
             selector.innerHTML = '';
-
             models.forEach(model => {
                 const label = document.createElement('label');
                 label.className = 'model-item';
-                
-                let isChecked = false;
-                if (savedModels && Array.isArray(savedModels)) {
-                    isChecked = savedModels.includes(model);
-                } else {
-                    // 최초 인입 시 기본 타겟 필터링 설정
-                    isChecked = (model === 'ZImageTurbo' || model === 'ZImageBase');
-                }
-
+                let isChecked = savedModels && Array.isArray(savedModels)
+                    ? savedModels.includes(model)
+                    : (model === 'ZImageTurbo' || model === 'ZImageBase');
                 label.innerHTML = `<input type="checkbox" name="baseModel" value="${model}" ${isChecked ? 'checked' : ''} onchange="updateCountSummary(); saveFilterOptions();"> <span>${model}</span>`;
                 selector.appendChild(label);
             });
             updateCountSummary();
         }
 
+        function handleIdFilterInput() {
+            const modelId = document.getElementById('modelIdFilter').value.trim();
+            const modelVersionId = document.getElementById('modelVersionIdFilter').value.trim();
+            const summaryBox = document.getElementById('modelSummaryBox');
+            const changeBtn = document.getElementById('modelChangeBtn');
+            const countLabel = document.getElementById('selectedModelCount');
+            if (modelId || modelVersionId) {
+                summaryBox.classList.add('bypass-mode');
+                changeBtn.disabled = true;
+                countLabel.innerText = "Bypass";
+            } else {
+                summaryBox.classList.remove('bypass-mode');
+                changeBtn.disabled = false;
+                updateCountSummary();
+            }
+        }
+
         function updateCountSummary() {
+            const modelId = document.getElementById('modelIdFilter').value.trim();
+            const modelVersionId = document.getElementById('modelVersionIdFilter').value.trim();
+            if (modelId || modelVersionId) return;
             const checkedCount = document.querySelectorAll('input[name="baseModel"]:checked').length;
-            // 체크박스를 하나도 선택하지 않았다면 "All"로 표시하여 필터링 해제 상태임을 명시
             document.getElementById('selectedModelCount').innerText = checkedCount === 0 ? "All" : checkedCount;
         }
 
         function applyModelSelection() {
-            toggleModal(false);
+            toggleModal(false, 'modelModal');
             initSearch();
+        }
+
+        function filterByClickedUser(username) {
+            if (!username) return;
+            if (confirm(`@${username} 유저의 작품만 필터링하시겠습니까?`)) {
+                openAdvancedIfNeeded();
+                document.getElementById('usernameFilter').value = username;
+                saveFilterOptions();
+                initSearch();
+                window.scrollTo(0, 0);
+            }
         }
 
         async function loadBaseModels() {
             const savedModels = loadSavedSelects();
-            
-            // enums API 호출 성공 여부와 상관없이 마스터 리스트를 항상 기본 탑재하여 보여줌
             renderModelCheckboxes(FALLBACK_MODELS, savedModels);
+            handleIdFilterInput();
+            updateUserSuggestionsUI();
+
+            // 고급 필터 열림 상태 복원
+            const advWasOpen = localStorage.getItem('gallery_adv_open');
+            const hasAdvValues = (() => {
+                try {
+                    const opt = JSON.parse(localStorage.getItem('gallery_filter_options') || '{}');
+                    return !!(opt.username || opt.modelId || opt.modelVersionId);
+                } catch(e) { return false; }
+            })();
+
+            if (advWasOpen || hasAdvValues) {
+                const row = document.getElementById('advancedRow');
+                const btn = document.getElementById('toggleAdvBtn');
+                row.classList.add('open');
+                btn.classList.add('active');
+                btn.textContent = '－ 고급';
+                if (hasAdvValues) localStorage.setItem('gallery_adv_open', '1');
+            }
 
             setTimeout(async () => {
                 try {
@@ -344,75 +583,126 @@
                     const data = await response.json();
                     if (data.ActiveBaseModel && data.ActiveBaseModel.length > 0) {
                         const currentSaved = loadSavedSelects();
-                        // API 데이터 중 제공된 마스터 리스트에 포함되어 있으면서 비디오 모델이 아닌 항목만 선별해 매핑
-                        const filteredServerModels = data.ActiveBaseModel.filter(m => FALLBACK_MODELS.includes(m));
-                        renderModelCheckboxes(filteredServerModels, currentSaved);
+                        const filtered = data.ActiveBaseModel.filter(m => FALLBACK_MODELS.includes(m));
+                        renderModelCheckboxes(filtered, currentSaved);
+                        handleIdFilterInput();
                     }
-                } catch (e) { console.warn("Using fallback model list due to API or CORS limits."); }
-            }, 2000); 
+                } catch (e) { console.warn("Using fallback model list."); }
+            }, 2000);
         }
 
-        async function getApiData(targetCursor) {
+        async function getApiData(cursorValue) {
+            const username = document.getElementById('usernameFilter').value.trim();
+            const modelId = document.getElementById('modelIdFilter').value.trim();
+            const modelVersionId = document.getElementById('modelVersionIdFilter').value.trim();
             const period = document.getElementById('period').value;
             const sort = document.getElementById('sort').value;
             const browsingLevel = document.getElementById('browsingLevel').value;
             const onlyPrompt = document.getElementById('onlyPrompt').checked;
             const selectedModels = Array.from(document.querySelectorAll('input[name="baseModel"]:checked')).map(cb => cb.value);
-            
-            let url = `${BASE_API}/images?type=image&limit=${limit}&sort=${encodeURIComponent(sort)}&period=${period}&browsingLevel=${browsingLevel}`;
-            
-            // 핵심: 선택된 모델이 하나라도 있을 때만 파라미터 전달, 체크가 전혀 없으면 필터링 생략(전체 조회)
-            if (selectedModels.length > 0) {
-                url += `&baseModels=${selectedModels.join(',')}`;
+
+            const isIdMode = !!(modelId || modelVersionId);
+
+            let url = `${BASE_API}/images?type=image&limit=${limit}&sort=${encodeURIComponent(sort)}&browsingLevel=${browsingLevel}`;
+            if (username) url += `&username=${encodeURIComponent(username)}`;
+            if (modelId) url += `&modelId=${encodeURIComponent(modelId)}`;
+            if (modelVersionId) url += `&modelVersionId=${encodeURIComponent(modelVersionId)}`;
+            if (!isIdMode) {
+                url += `&period=${period}`;
+                if (selectedModels.length > 0) url += `&baseModels=${selectedModels.join(',')}`;
             }
-            
-            if (targetCursor) url += `&cursor=${targetCursor}`;
+            // ID 모드에서 cursor 완전 차단
+            if (!isIdMode && cursorValue) url += `&cursor=${cursorValue}`;
+
+            lastApiUrl = url;
+            document.getElementById('currentApiInspector').textContent = url;
 
             const response = await fetch(url, { headers: getHeaders() });
             const data = await response.json();
-            
-            let items = (data.items || []).filter(item => item.type === 'image');
-            if (onlyPrompt) items = items.filter(item => item.meta && item.meta.prompt);
-            
-            return { items, nextCursor: data.metadata?.nextCursor || null };
+
+            // type 클라이언트 필터 제거, meta 중첩(item.meta.meta) 대응
+            let items = data.items || [];
+            if (onlyPrompt) {
+                items = items.filter(item => {
+                    const meta = item.meta?.meta || item.meta || {};
+                    return !!meta.prompt;
+                });
+            }
+
+            if (username && items.length > 0) tryRegisterUsername(username);
+
+            // ID 모드에서 nextCursor 강제 null
+            const nextCursor = isIdMode ? null : (data.metadata?.nextCursor || null);
+            return { items, nextCursor };
         }
 
         async function initSearch() {
-            if (isFetching) return;
+            const mySession = ++searchSessionId;
             cursor = null;
-            currentPage = 1;
             nextDataCache = null;
+            currentPage = 1;
+
             document.getElementById('imageGrid').innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 50px;">이미지를 불러오는 중...</p>';
-            await loadPageData();
+
+            isFetching = true;
+            try {
+                const data = await getApiData(null);
+                if (mySession !== searchSessionId) return;
+                if (data.items.length === 0) {
+                    document.getElementById('imageGrid').innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 50px; color:#aa6666;">검색 결과가 존재하지 않거나 잘못된 ID 설정입니다.</p>';
+                } else {
+                    renderImages(data.items);
+                }
+                cursor = data.nextCursor;
+                updatePaginationUI();
+            } catch (e) {
+                console.error(e);
+                if (mySession !== searchSessionId) return;
+                document.getElementById('imageGrid').innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 50px; color:#c92a2a;">서버 통신 중 알 수 없는 에러가 발생했습니다.</p>';
+            } finally {
+                isFetching = false;
+            }
+
+            if (cursor && mySession === searchSessionId) {
+                setTimeout(() => prefetchNext(mySession), 500);
+            }
         }
 
         async function loadPageData() {
             isFetching = true;
             try {
-                let data = nextDataCache ? nextDataCache : await getApiData(cursor);
-                nextDataCache = null; 
-
-                renderImages(data.items);
+                const data = nextDataCache ? nextDataCache : await getApiData(cursor);
+                nextDataCache = null;
+                if (data.items.length === 0) {
+                    document.getElementById('imageGrid').innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 50px; color:#aa6666;">검색 결과가 존재하지 않거나 잘못된 ID 설정입니다.</p>';
+                } else {
+                    renderImages(data.items);
+                }
                 cursor = data.nextCursor;
-                
                 updatePaginationUI();
-                if (cursor) setTimeout(prefetchNext, 500); 
             } catch (e) {
                 console.error(e);
+                document.getElementById('imageGrid').innerHTML = '<p style="grid-column: 1/-1; text-align: center; padding: 50px; color:#c92a2a;">서버 통신 중 알 수 없는 에러가 발생했습니다.</p>';
             } finally {
                 isFetching = false;
             }
+
+            if (cursor) setTimeout(() => prefetchNext(searchSessionId), 500);
         }
 
-        async function prefetchNext() {
+        async function prefetchNext(sessionId) {
             if (!cursor || nextDataCache || isFetching) return;
-            document.getElementById('prefetchStatus').style.display = 'inline-block';
+            if (sessionId !== searchSessionId) return;
+
+            const el = document.getElementById('prefetchStatus');
+            el.style.display = 'inline-block';
             try {
-                nextDataCache = await getApiData(cursor);
+                const data = await getApiData(cursor);
+                if (sessionId === searchSessionId) nextDataCache = data;
             } catch (e) {
-                console.warn("Prefetch failed");
+                console.warn("Prefetch failed:", e);
             } finally {
-                document.getElementById('prefetchStatus').style.display = 'none';
+                el.style.display = 'none';
             }
         }
 
@@ -420,10 +710,12 @@
             const grid = document.getElementById('imageGrid');
             grid.innerHTML = '';
             items.forEach((item) => {
-                const meta = item.meta || {};
+                // meta 중첩 구조 대응
+                const meta = item.meta?.meta || item.meta || {};
                 const prompt = meta.prompt || "";
                 const comfy = meta.comfy || "";
-                
+                const creatorName = item.username || "Unknown";
+
                 let displayUrl = item.url.replace(/\/original=true\//g, '/width=450/');
                 if (!displayUrl.includes('width=')) displayUrl += (displayUrl.includes('?') ? '&' : '?') + 'width=450';
 
@@ -438,6 +730,7 @@
                         <div class="badge stats-merged">
                             <span>👍 ${item.stats?.likeCount || 0}</span>
                             <span>❤️ ${item.stats?.heartCount || 0}</span>
+                            <span class="badge-user-link" onclick="event.stopPropagation(); filterByClickedUser('${creatorName}')">@${creatorName}</span>
                         </div>
                         ${prompt ? `<div class="badge clickable prompt-status" onclick="copyFromB64(this, '${encodedPrompt}', 'PROMPT')">PROMPT</div>` : ''}
                         ${comfy ? `<div class="badge clickable comfy-status" onclick="copyFromB64(this, '${encodedComfy}', 'COMFYUI')">COMFYUI</div>` : ''}
@@ -450,13 +743,13 @@
 
         function b64EncodeUnicode(str) {
             if (!str) return "";
-            try { return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1))); } 
+            try { return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) => String.fromCharCode('0x' + p1))); }
             catch(e) { return ""; }
         }
 
         function b64DecodeUnicode(str) {
             if (!str) return "";
-            try { return decodeURIComponent(Array.prototype.map.call(atob(str), (c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')); } 
+            try { return decodeURIComponent(Array.prototype.map.call(atob(str), c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')); }
             catch(e) { return ""; }
         }
 
@@ -466,17 +759,11 @@
                 try { text = JSON.stringify(JSON.parse(text), null, 2); } catch(e) {}
             }
             navigator.clipboard.writeText(text).then(() => {
-                const toast = document.getElementById('copyToast');
-                toast.innerText = `${label} 복사 완료!`;
-                toast.style.display = 'block';
                 el.classList.add('copied');
                 const oldText = el.innerText;
                 el.innerText = 'COPIED!';
-                setTimeout(() => {
-                    toast.style.display = 'none';
-                    el.classList.remove('copied');
-                    el.innerText = oldText;
-                }, 1200);
+                showToast(`${label} 복사 완료!`);
+                setTimeout(() => { el.classList.remove('copied'); el.innerText = oldText; }, 1200);
             });
         }
 
@@ -496,14 +783,14 @@
                 currentPage--;
                 nextDataCache = null;
                 cursor = null;
-                await initSearch(); 
+                await initSearch();
             }
         }
 
         async function bootstrap() {
-            await loadBaseModels(); 
-            checkApiKey();          
-            await initSearch();     
+            await loadBaseModels();
+            checkApiKey();
+            await initSearch();
         }
 
         bootstrap();
